@@ -138,6 +138,8 @@ function propertyNameStyle(original: string, isBool: boolean = false): string {
     );
 }
 
+const DATE_FUNCTION = { FROM_STRING: "QTDateFromString", TO_STRING: "QTStringFromDate" };
+
 const keywords = [
     /*
     "_Bool",
@@ -354,7 +356,7 @@ class ObjectiveCRenderer extends ConvenienceRenderer {
     };
 
     private emitDateFunctions() {
-        this.emitBlock("static NSDateFormatter *dateFormatter()", () => {
+        this.emitBlock("static NSDateFormatter *QTDateFormatter()", () => {
             this.emitLine("static NSDateFormatter *_dateFormatter;");
             this.emitBlock("if (_dateFormatter == nil)", () => {
                 this.emitLine("_dateFormatter = [NSDateFormatter new];");
@@ -364,8 +366,8 @@ class ObjectiveCRenderer extends ConvenienceRenderer {
             this.emitLine("return _dateFormatter;");
         });
         this.ensureBlankLine();
-        this.emitBlock("static NSDate *stringToDate(NSString *string)", () => {
-            this.emitLine("NSDate *date = [dateFormatter() dateFromString:string];");
+        this.emitBlock(`static NSDate *${DATE_FUNCTION.FROM_STRING}(NSString *string)`, () => {
+            this.emitLine("NSDate *date = [QTDateFormatter() dateFromString:string];");
             this.emitBlock("if (date == nil)", () => {
                 this.emitLine(`[NSException raise:NSInvalidArgumentException`);
                 this.emitLine(
@@ -375,8 +377,8 @@ class ObjectiveCRenderer extends ConvenienceRenderer {
             this.emitLine("return date;");
         });
         this.ensureBlankLine();
-        this.emitBlock("static NSString *dateToString(NSDate *date)", () => {
-            this.emitLine("return [dateFormatter() stringFromDate:date];");
+        this.emitBlock(`static NSString *${DATE_FUNCTION.TO_STRING}(NSDate *date)`, () => {
+            this.emitLine("return [QTDateFormatter() stringFromDate:date];");
         });
     }
 
@@ -488,7 +490,7 @@ class ObjectiveCRenderer extends ConvenienceRenderer {
                 return nullable !== null ? this.fromDynamicExpression(nullable, dynamic) : dynamic;
             },
             {
-                dateTimeType: _ => ["stringToDate((NSString *)", dynamic, ")"]
+                dateTimeType: _ => [DATE_FUNCTION.FROM_STRING, "((NSString *)", dynamic, ")"]
             }
         );
     };
@@ -533,7 +535,7 @@ class ObjectiveCRenderer extends ConvenienceRenderer {
                 }
             },
             {
-                dateTimeType: _ => ["dateToString(", typed, ")"]
+                dateTimeType: _ => [DATE_FUNCTION.TO_STRING, "(", typed, ")"]
             }
         );
     };
