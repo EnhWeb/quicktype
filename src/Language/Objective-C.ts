@@ -1073,8 +1073,10 @@ class ObjectiveCRenderer extends ConvenienceRenderer {
                 this.emitBlock("static id NSNullify(id _Nullable x)", () =>
                     this.emitLine("return (x == nil || x == NSNull.null) ? NSNull.null : x;")
                 );
-                this.ensureBlankLine();
-                this.emitDateFunctions();
+                if (this.hasDateTimes) {
+                    this.ensureBlankLine();
+                    this.emitDateFunctions();
+                }
 
                 // We wouldn't need to emit these private iterfaces if we emitted implementations in forward-order
                 // but the code is more readable and explicit if we do this.
@@ -1119,6 +1121,19 @@ class ObjectiveCRenderer extends ConvenienceRenderer {
             this.finishFile();
         }
     }
+
+    private someType(property: (t: Type) => boolean): boolean {
+        // TODO this isn't complete (needs union support, for example)
+        function matches(t: Type): boolean {
+            return property(t) || (t instanceof ClassType && t.properties.some(p => matches(p.type)));
+        }
+        return this.typeGraph.allTypesUnordered().some(matches);
+    }
+
+    private get hasDateTimes(): boolean {
+        return this.someType(t => includes(["date", "time", "date-time"], t.kind));
+    }
+
     private get needsMap(): boolean {
         // TODO this isn't complete (needs union support, for example)
         function needsMap(t: Type): boolean {
